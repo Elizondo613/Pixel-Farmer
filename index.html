@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Farmer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #87CEEB;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background-color: #4a6741;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .stats-bar {
+            background-color: #5d4037;
+            color: white;
+            padding: 0.5rem;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Nuevos estilos para nivel y experiencia */
+        .level-bar {
+            background-color: #2c5530;
+            height: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            width: 200px;
+            margin: 0.5rem;
+        }
+
+        .xp-progress {
+            height: 100%;
+            background-color: #4CAF50;
+            transition: width 0.3s;
+        }
+
+        .level-text {
+            text-align: center;
+            color: white;
+            margin-top: -20px;
+            position: relative;
+            z-index: 1;
+            text-shadow: 1px 1px 2px black;
+        }
+
+        /* Estilos para logros */
+        .achievements-panel {
+            position: fixed;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: rgba(74, 103, 65, 0.9);
+            padding: 1rem;
+            border-radius: 8px;
+            color: white;
+            max-width: 250px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .achievement {
+            background-color: #2c5530;
+            padding: 0.5rem;
+            margin: 0.5rem 0;
+            border-radius: 4px;
+            opacity: 0.7;
+        }
+
+        .achievement.unlocked {
+            opacity: 1;
+            background-color: #4CAF50;
+        }
+
+        .achievement-notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #4CAF50;
+            color: white;
+            padding: 1rem;
+            border-radius: 4px;
+            animation: slideDown 0.5s ease-out, fadeOut 0.5s ease-in 2.5s forwards;
+            z-index: 1000;
+        }
+
+        @keyframes slideDown {
+            from { transform: translateX(-50%) translateY(-100%); }
+            to { transform: translateX(-50%) translateY(0); }
+        }
+
+        @keyframes fadeOut {
+            to { opacity: 0; }
+        }
+
+        .game-container {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 1rem;
+            gap: 1rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .farm-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+            background-color: #8d6e63;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .plot {
+            width: 80px;
+            height: 80px;
+            background-color: #795548;
+            border: 2px solid #5d4037;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            transition: transform 0.2s;
+        }
+
+        .plot:hover {
+            transform: scale(1.05);
+        }
+
+        .plot.growing {
+            background-color: #4caf50;
+        }
+
+        .plot .progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 5px;
+            background-color: #81c784;
+            transition: width 0.5s;
+        }
+
+        .controls {
+            flex: 1;
+            background-color: #5d4037;
+            padding: 1rem;
+            border-radius: 8px;
+            color: white;
+        }
+
+        .market {
+            background-color: #4a6741;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .seed-list {
+            display: grid;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .seed-item {
+            background-color: #6d4c41;
+            padding: 0.5rem;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        button {
+            background-color: #81c784;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            color: #333;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #66bb6a;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .weather {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.5rem;
+            background-color: rgba(0,0,0,0.5);
+            color: white;
+            border-radius: 4px;
+        }
+
+        @media (max-width: 768px) {
+            .game-container {
+                flex-direction: column;
+            }
+
+            .farm-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .plot {
+                width: 100px;
+                height: 100px;
+            }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .rainbow {
+            animation: rainbow 2s linear infinite;
+        }
+
+        @keyframes rainbow {
+            0% { color: red; }
+            33% { color: yellow; }
+            66% { color: blue; }
+            100% { color: red; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Pixel Farmer <span id="player-title" class="title-badge">Granjero Novato</span></h1>
+    </div>
+
+    <div class="stats-bar">
+        <div class="stat">
+            <span>💰</span>
+            <span id="money">100</span>
+        </div>
+        <div class="stat">
+            <span>🌾</span>
+            <span id="harvest-count">0</span>
+        </div>
+        <div class="stat">
+            <span>⭐</span>
+            <span id="level">1</span>
+        </div>
+        <div class="level-bar">
+            <div id="xp-bar" class="xp-progress" style="width: 0%"></div>
+            <div class="level-text">XP: <span id="xp-text">0/100</span></div>
+        </div>
+        <div class="stat">
+            <span>⏰</span>
+            <span id="game-time">Día 1</span>
+        </div>
+    </div>
+
+    <div class="game-container">
+        <div class="farm-grid" id="farm-grid">
+            <!-- Plots will be generated here -->
+        </div>
+
+        <div class="controls">
+            <h2>🌱 Mercado de Semillas</h2>
+            <div class="seed-list" id="seed-list">
+                <!-- Seeds will be listed here -->
+            </div>
+
+            <div class="market">
+                <h3>💼 Inventario</h3>
+                <div id="inventory">
+                    <!-- Inventory items will be listed here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="weather" id="weather">
+        ☀️ Soleado
+    </div>
+
+    <div class="achievements-panel">
+        <h3>🏆 Logros</h3>
+        <div id="achievements-list">
+            <!-- Achievements will be listed here -->
+        </div>
+    </div>
+
+    <script>
+                // Sistema de niveles y experiencia
+                const levelSystem = {
+            xpPerLevel: 100,
+            titles: {
+                1: "Granjero Novato",
+                5: "Agricultor Aprendiz",
+                10: "Granjero Experimentado",
+                15: "Maestro Agricultor",
+                20: "Leyenda de la Granja"
+            }
+        };
+
+        // Sistema de logros
+        const achievements = {
+            firstHarvest: {
+                id: 'firstHarvest',
+                name: "Primera Cosecha",
+                description: "Cosecha tu primera planta",
+                xp: 50,
+                check: (state) => state.harvestCount >= 1
+            },
+            tenHarvests: {
+                id: 'tenHarvests',
+                name: "Cosechador Dedicado",
+                description: "Cosecha 10 plantas",
+                xp: 100,
+                check: (state) => state.harvestCount >= 10
+            },
+            richFarmer: {
+                id: 'richFarmer',
+                name: "Granjero Rico",
+                description: "Alcanza 500 monedas",
+                xp: 200,
+                check: (state) => state.money >= 500
+            },
+            variety: {
+                id: 'variety',
+                name: "Agricultor Versátil",
+                description: "Cultiva cada tipo de planta al menos una vez",
+                xp: 150,
+                check: (state) => Object.keys(state.inventory).length >= 5
+            }
+        };
+
+        // Game state
+        let gameState = {
+            money: 100,
+            harvestCount: 0,
+            gameDay: 1,
+            weather: 'sunny',
+            plots: [],
+            inventory: {},
+            level: 1,
+            xp: 0,
+            unlockedAchievements: [],
+            seeds: {
+                'Zanahoria 🥕': { price: 10, growthTime: 10, sellPrice: 20 },
+                'Tomate 🍅': { price: 20, growthTime: 15, sellPrice: 35 },
+                'Maíz 🌽': { price: 15, growthTime: 12, sellPrice: 25 },
+                'Fresa 🍓': { price: 25, growthTime: 20, sellPrice: 45 },
+                'Sandía 🍉': { price: 40, growthTime: 30, sellPrice: 80 }
+            }
+        };
+
+                // Funciones del sistema de niveles
+                function addXP(amount) {
+            gameState.xp += amount;
+            while (gameState.xp >= levelSystem.xpPerLevel) {
+                gameState.xp -= levelSystem.xpPerLevel;
+                gameState.level++;
+                showNotification(`¡Nivel ${gameState.level} alcanzado! 🎉`);
+                updateTitle();
+            }
+            updateUI();
+        }
+
+        function updateTitle() {
+            const currentLevel = gameState.level;
+            let highestApplicableTitle = "Granjero Novato";
+            
+            Object.entries(levelSystem.titles).forEach(([level, title]) => {
+                if (currentLevel >= parseInt(level)) {
+                    highestApplicableTitle = title;
+                }
+            });
+            
+            document.getElementById('player-title').textContent = highestApplicableTitle;
+        }
+
+        // Funciones del sistema de logros
+        function checkAchievements() {
+            Object.values(achievements).forEach(achievement => {
+                if (!gameState.unlockedAchievements.includes(achievement.id) && 
+                    achievement.check(gameState)) {
+                    unlockAchievement(achievement);
+                }
+            });
+        }
+
+        function unlockAchievement(achievement) {
+            gameState.unlockedAchievements.push(achievement.id);
+            addXP(achievement.xp);
+            showNotification(`¡Logro desbloqueado: ${achievement.name}! 🏆`);
+            updateAchievementsList();
+        }
+
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'achievement-notification';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 3000);
+        }
+
+        function updateAchievementsList() {
+            const achievementsList = document.getElementById('achievements-list');
+            achievementsList.innerHTML = Object.values(achievements)
+                .map(achievement => `
+                    <div class="achievement ${gameState.unlockedAchievements.includes(achievement.id) ? 'unlocked' : ''}">
+                        <h4>${achievement.name}</h4>
+                        <p>${achievement.description}</p>
+                        <small>+${achievement.xp} XP</small>
+                    </div>
+                `).join('');
+        }
+
+        // Initialize game
+        function initGame() {
+            loadGame();
+            createPlots();
+            updateUI();
+            startGameLoop();
+            showTutorial();
+        }
+
+        // Create farm plots
+        function createPlots() {
+            const farmGrid = document.getElementById('farm-grid');
+            for (let i = 0; i < 12; i++) {
+                const plot = document.createElement('div');
+                plot.className = 'plot';
+                plot.onclick = () => handlePlotClick(i);
+                
+                const progress = document.createElement('div');
+                progress.className = 'progress';
+                plot.appendChild(progress);
+                
+                farmGrid.appendChild(plot);
+                
+                if (!gameState.plots[i]) {
+                    gameState.plots[i] = { planted: false };
+                }
+            }
+        }
+
+        // Handle plot click
+        function handlePlotClick(index) {
+            const plot = gameState.plots[index];
+            if (!plot.planted) {
+                showSeedSelection(index);
+            } else if (plot.progress >= 100) {
+                harvestPlot(index);
+            }
+        }
+
+        // Show seed selection
+        function showSeedSelection(plotIndex) {
+            const seedList = document.getElementById('seed-list');
+            seedList.innerHTML = '';
+            
+            Object.entries(gameState.seeds).forEach(([name, data]) => {
+                const button = document.createElement('div');
+                button.className = 'seed-item';
+                button.innerHTML = `
+                    <span>${name} (${data.growthTime}s)</span>
+                    <button 
+                        onclick="plantSeed('${name}', ${plotIndex})"
+                        ${gameState.money < data.price ? 'disabled' : ''}
+                    >
+                        Plantar 💰${data.price}
+                    </button>
+                `;
+                seedList.appendChild(button);
+            });
+        }
+
+        // Plant seed
+        function plantSeed(seedName, plotIndex) {
+            const seedData = gameState.seeds[seedName];
+            if (gameState.money >= seedData.price) {
+                gameState.money -= seedData.price;
+                gameState.plots[plotIndex] = {
+                    planted: true,
+                    type: seedName,
+                    progress: 0,
+                    growthTime: seedData.growthTime
+                };
+                updateUI();
+                saveGame();
+            }
+        }
+
+        // Harvest plot
+        function harvestPlot(index) {
+            const plot = gameState.plots[index];
+            const seedData = gameState.seeds[plot.type];
+            
+            gameState.money += seedData.sellPrice;
+            gameState.harvestCount++;
+            
+            if (!gameState.inventory[plot.type]) {
+                gameState.inventory[plot.type] = 0;
+            }
+            gameState.inventory[plot.type]++;
+            
+            gameState.plots[index] = { planted: false };
+            
+            // Agregar XP por cosecha
+            addXP(10);
+            
+            // Verificar logros
+            checkAchievements();
+            
+            updateUI();
+            saveGame();
+        }
+
+        // Update UI
+        function updateUI() {
+            document.getElementById('money').textContent = gameState.money;
+            document.getElementById('harvest-count').textContent = gameState.harvestCount;
+            document.getElementById('game-time').textContent = `Día ${gameState.gameDay}`;
+            document.getElementById('level').textContent = gameState.level;
+            document.getElementById('xp-text').textContent = `${gameState.xp}/${levelSystem.xpPerLevel}`;
+            document.getElementById('xp-bar').style.width = `${(gameState.xp / levelSystem.xpPerLevel) * 100}%`;
+            
+            updateTitle();
+            updateAchievementsList();
+            
+            // Actualizar parcelas
+            const plotElements = document.querySelectorAll('.plot');
+            gameState.plots.forEach((plot, index) => {
+                const plotElement = plotElements[index];
+                plotElement.className = 'plot' + (plot.planted ? ' growing' : '');
+                
+                if (plot.planted) {
+                    plotElement.innerHTML = `
+                        <div>${plot.type}</div>
+                        <div class="progress" style="width: ${plot.progress}%"></div>
+                    `;
+                } else {
+                    plotElement.innerHTML = '<div class="progress"></div>';
+                }
+            });
+
+            // Actualizar inventario
+            const inventory = document.getElementById('inventory');
+            inventory.innerHTML = Object.entries(gameState.inventory)
+                .map(([item, count]) => `<div>${item}: ${count}</div>`)
+                .join('');
+        }
+
+        // Game loop
+        function startGameLoop() {
+            setInterval(() => {
+                updateWeather();
+                growPlants();
+                gameState.gameDay++;
+                checkAchievements(); // Verificar logros en cada ciclo
+                updateUI();
+                saveGame();
+            }, 1000);
+        }
+
+        // Update weather
+        function updateWeather() {
+            const weathers = ['☀️ Soleado', '🌧️ Lluvioso', '🌪️ Ventoso'];
+            const weather = weathers[Math.floor(Math.random() * weathers.length)];
+            document.getElementById('weather').textContent = weather;
+            
+            if (weather.includes('Lluvioso')) {
+                document.getElementById('weather').classList.add('rainbow');
+                // Bonus de XP por clima lluvioso
+                addXP(5);
+            } else {
+                document.getElementById('weather').classList.remove('rainbow');
+            }
+        }
+
+        // Crecimiento de plantas
+        function growPlants() {
+            const weather = document.getElementById('weather').textContent;
+            const growthMultiplier = weather.includes('Lluvioso') ? 2 : 1;
+            
+            gameState.plots.forEach((plot, index) => {
+                if (plot.planted && plot.progress < 100) {
+                    plot.progress += (100 / plot.growthTime) * growthMultiplier;
+                    if (plot.progress > 100) {
+                        plot.progress = 100;
+                        // XP bonus por planta madura
+                        addXP(2);
+                    }
+                }
+            });
+        }
+
+        // Save game
+        function saveGame() {
+            localStorage.setItem('pixelFarmerSave', JSON.stringify(gameState));
+        }
+
+        // Load game
+        function loadGame() {
+            const savedGame = localStorage.getItem('pixelFarmerSave');
+            if (savedGame) {
+                gameState = JSON.parse(savedGame);
+                // Asegurarse de que los nuevos campos existan
+                gameState.level = gameState.level || 1;
+                gameState.xp = gameState.xp || 0;
+                gameState.unlockedAchievements = gameState.unlockedAchievements || [];
+            }
+        }
+
+        // Tutorial
+        function showTutorial() {
+            if (!localStorage.getItem('pixelFarmerTutorialSeen')) {
+                const tutorialModal = document.createElement('div');
+                tutorialModal.className = 'modal';
+                tutorialModal.style.display = 'flex';
+                tutorialModal.innerHTML = `
+                    <div class="modal-content">
+                        <h2>¡Bienvenido a Pixel Farmer! 🌱</h2>
+                        <p>Administra tu granja, cultiva plantas y véndelas para ganar dinero.</p>
+                        <p>Nuevas características:</p>
+                        <ul>
+                            <li>¡Gana experiencia (XP) por cada cosecha!</li>
+                            <li>Sube de nivel y desbloquea nuevos títulos</li>
+                            <li>Completa logros para ganar recompensas extra</li>
+                        </ul>
+                        <button onclick="closeTutorial()">¡Empezar a jugar!</button>
+                    </div>
+                `;
+                document.body.appendChild(tutorialModal);
+            }
+        }
+
+        function closeTutorial() {
+            const tutorialModal = document.querySelector('.modal');
+            if (tutorialModal) {
+                tutorialModal.style.display = 'none';
+                localStorage.setItem('pixelFarmerTutorialSeen', 'true');
+            }
+        }
+
+        // Inicialización del juego
+        function initGame() {
+            loadGame();
+            createPlots();
+            updateUI();
+            startGameLoop();
+            showTutorial();
+        }
+
+        // Crear parcelas
+        function createPlots() {
+            const farmGrid = document.getElementById('farm-grid');
+            farmGrid.innerHTML = ''; // Limpiar grid existente
+            
+            for (let i = 0; i < 12; i++) {
+                const plot = document.createElement('div');
+                plot.className = 'plot';
+                plot.onclick = () => handlePlotClick(i);
+                
+                const progress = document.createElement('div');
+                progress.className = 'progress';
+                plot.appendChild(progress);
+                
+                farmGrid.appendChild(plot);
+                
+                if (!gameState.plots[i]) {
+                    gameState.plots[i] = { planted: false };
+                }
+            }
+        }
+
+        // Start game
+        initGame();
+    </script>
+</body>
+</html>
