@@ -71,16 +71,45 @@
         /* Estilos para logros */
         .achievements-panel {
             position: fixed;
-            right: 1rem;
+            right: -250px; /* Inicialmente oculto */
             top: 50%;
             transform: translateY(-50%);
             background-color: rgba(74, 103, 65, 0.9);
             padding: 1rem;
-            border-radius: 8px;
+            border-radius: 8px 0 0 8px;
             color: white;
             max-width: 250px;
             max-height: 80vh;
             overflow-y: auto;
+            transition: right 0.3s ease;
+            z-index: 100;
+        }
+
+        .achievements-panel.open {
+            right: 0;
+        }
+
+        .achievements-toggle {
+            position: absolute;
+            left: -40px;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: rgba(74, 103, 65, 0.9);
+            color: white;
+            width: 40px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border-radius: 8px 0 0 8px;
+            border: none;
+            font-size: 20px;
+            padding: 0;
+        }
+
+        .achievements-toggle:hover {
+            background-color: rgba(74, 103, 65, 1);
         }
 
         .achievement {
@@ -241,6 +270,14 @@
                 width: 100px;
                 height: 100px;
             }
+
+            .achievements-panel {
+            right: -250px;
+            }
+
+            .achievements-panel.open {
+                right: 0;
+            }
         }
 
         .modal {
@@ -327,7 +364,8 @@
         ☀️ Soleado
     </div>
 
-    <div class="achievements-panel">
+    <div class="achievements-panel" id="achievements-panel">
+        <button class="achievements-toggle" onclick="toggleAchievements()">🏆</button>
         <h3>🏆 Logros</h3>
         <div id="achievements-list">
             <!-- Achievements will be listed here -->
@@ -335,8 +373,14 @@
     </div>
 
     <script>
-                // Sistema de niveles y experiencia
-                const levelSystem = {
+        // Agregar función para alternar el panel de logros
+        function toggleAchievements() {
+            const panel = document.getElementById('achievements-panel');
+            panel.classList.toggle('open');
+        }
+
+        // Sistema de niveles y experiencia
+        const levelSystem = {
             xpPerLevel: 100,
             titles: {
                 1: "Granjero Novato",
@@ -399,8 +443,8 @@
             }
         };
 
-                // Funciones del sistema de niveles
-                function addXP(amount) {
+        // Funciones del sistema de niveles
+        function addXP(amount) {
             gameState.xp += amount;
             while (gameState.xp >= levelSystem.xpPerLevel) {
                 gameState.xp -= levelSystem.xpPerLevel;
